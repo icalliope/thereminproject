@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theremin</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 35px 25px;
+            background: radial-gradient(circle at top, #18233a 0%, #090d16 45%, #05070c 100%);
+            color: #f4f7fb;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .theremin {
+            width: 100%;
+            max-width: 1400px;
+            margin: auto;
+        }
+
+        .baslik {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .baslik h1 {
+            margin: 0;
+            font-size: 42px;
+            letter-spacing: 8px;
+        }
+
+        .baslik p {
+            margin-top: 10px;
+            color: #8d98aa;
+            font-size: 13px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .ana-alan {
+            display: grid;
+            grid-template-columns: minmax(0, 2.7fr) minmax(300px, 1fr);
+            gap: 25px;
+            align-items: stretch;
+        }
+
+        .kart {
+            background: rgba(14, 20, 32, 0.9);
+            border: 1px solid #263149;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.35);
+        }
+
+        /* KAMERA */
+
+        .kamera-karti {
+            min-height: 650px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .kamera-alani {
+            position: relative;
+            width: 100%;
+        }
+
+        #videoElemani {
+            width: 100%;
+            height: auto;
+            display: block;
+            background: #111827;
+            border-radius: 15px;
+            transform: scaleX(-1);
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+            pointer-events: none;
+        }
+
+        /* KONTROL PANELİ */
+
+        .kontrol-paneli {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ses-bilgisi {
+            text-align: center;
+            padding-bottom: 25px;
+            border-bottom: 1px solid #263149;
+        }
+
+        .nota {
+            font-size: 70px;
+            font-weight: bold;
+            line-height: 1;
+            margin-bottom: 12px;
+        }
+
+        .frekans {
+            color: #8f9bb0;
+            font-size: 18px;
+        }
+
+        .bilgi-alani {
+            margin-top: 28px;
+        }
+
+        .bilgi-baslik {
+            color: #8995a9;
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 9px;
+        }
+
+        .bilgi-deger {
+            font-size: 25px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        /* BARLAR */
+
+        .bar {
+            width: 100%;
+            height: 9px;
+            background: #202a3d;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .bar-doluluk {
+            width: 0%;
+            height: 100%;
+            background: #38bdf8;
+            border-radius: 10px;
+            transition: width 0.08s linear;
+        }
+
+        /* NOTA SKALASI */
+
+        .nota-skala {
+            margin-top: 35px;
+        }
+
+        .nota-cizgi {
+            position: relative;
+            height: 42px;
+            margin-top: 15px;
+        }
+
+        .nota-cizgi::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 16px;
+            height: 2px;
+            background: #34445f;
+        }
+
+        .nota-isimleri {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            display: flex;
+            justify-content: space-between;
+            color: #aeb8c8;
+            font-size: 11px;
+        }
+
+        .nota-isaret {
+            position: absolute;
+            top: 8px;
+            left: 0%;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #38bdf8;
+            transform: translateX(-50%);
+            transition: left 0.08s linear;
+        }
+
+        /* EL KONTROLÜ */
+
+        .el-durumu {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .el {
+            padding: 14px;
+            background: #111a2a;
+            border: 1px solid #263149;
+            border-radius: 14px;
+        }
+
+        .el span {
+            display: block;
+            color: #7f8ba0;
+            font-size: 10px;
+            margin-bottom: 7px;
+            letter-spacing: 1px;
+        }
+
+        .el strong {
+            font-size: 13px;
+        }
+
+        /* BUTON */
+
+        #baslaBtn {
+            width: 100%;
+            margin-top: auto;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background: #38bdf8;
+            color: #06101b;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        #baslaBtn:hover {
+            background: #7dd3fc;
+            transform: translateY(-1px);
+        }
+
+        /* MOBİL */
+
+        @media (max-width: 900px) {
+            body {
+                padding: 20px 15px;
+            }
+
+            .ana-alan {
+                grid-template-columns: 1fr;
+            }
+
+            .kamera-karti {
+                min-height: auto;
+            }
+
+            .baslik h1 {
+                font-size: 32px;
+                letter-spacing: 5px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="theremin">
+
+        <header class="baslik">
+            <h1>THEREMIN</h1>
+            <p>Gesture Controlled Instrument</p>
+        </header>
+
+        <section class="ana-alan">
+
+            <!-- BÜYÜK KAMERA -->
+
+            <div class="kart kamera-karti">
+
+                <div class="kamera-alani">
+
+                    <video
+                        autoplay
+                        playsinline
+                        id="videoElemani">
+                    </video>
+
+                    <canvas id="canvas"></canvas>
+
+                </div>
+
+            </div>
+
+            <!-- KONTROL PANELİ -->
+
+            <div class="kart kontrol-paneli">
+
+                <div class="ses-bilgisi">
+
+                    <div class="nota" id="nota">
+                        --
+                    </div>
+
+                    <div class="frekans" id="frekans">
+                        0.00 Hz
+                    </div>
+
+                </div>
+
+                <!-- FREKANS -->
+
+                <div class="bilgi-alani">
+
+                    <div class="bilgi-baslik">
+                        Frequency
+                    </div>
+
+                    <div class="bilgi-deger" id="frekansDeger">
+                        0.00 Hz
+                    </div>
+
+                    <div class="bar">
+                        <div class="bar-doluluk" id="frekansBar"></div>
+                    </div>
+
+                </div>
+
+                <!-- NOTA SKALASI -->
+
+                <div class="nota-skala">
+
+                    <div class="bilgi-baslik">
+                        Note Position
+                    </div>
+
+                    <div class="nota-cizgi">
+
+                        <div class="nota-isimleri">
+                            <span>C4</span>
+                            <span>D4</span>
+                            <span>E4</span>
+                            <span>F4</span>
+                            <span>G4</span>
+                            <span>A4</span>
+                            <span>B4</span>
+                            <span>C5</span>
+                        </div>
+
+                        <div class="nota-isaret" id="notaIsaret"></div>
+
+                    </div>
+
+                </div>
+
+                <!-- SES -->
+
+                <div class="bilgi-alani">
+
+                    <div class="bilgi-baslik">
+                        Volume
+                    </div>
+
+                    <div class="bilgi-deger" id="sesDeger">
+                        0%
+                    </div>
+
+                    <div class="bar">
+                        <div class="bar-doluluk" id="sesBar"></div>
+                    </div>
+
+                </div>
+
+                <!-- EL DURUMU -->
+
+                <div class="bilgi-alani">
+
+                    <div class="bilgi-baslik">
+                        Hand Control
+                    </div>
+
+                    <div class="el-durumu">
+
+                        <div class="el">
+                            <span>RIGHT HAND</span>
+                            <strong>PITCH</strong>
+                        </div>
+
+                        <div class="el">
+                            <span>LEFT HAND</span>
+                            <strong>VOLUME</strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <button id="baslaBtn">
+                    START THEREMIN
+                </button>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="script.js"></script>
+
+</body>
+
+</html>
